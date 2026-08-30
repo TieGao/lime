@@ -3,28 +3,21 @@ package lime.system;
 import lime.app.Application;
 import lime.app.Event;
 #if sys
-#if haxe4
 import sys.thread.Deque;
 import sys.thread.Thread;
-#elseif cpp
-import cpp.vm.Deque;
-import cpp.vm.Thread;
-#elseif neko
-import neko.vm.Deque;
-import neko.vm.Thread;
 #end
-#end
+
 /**
-	A `BackgroundWorker` allows the execution of a function on a background thread, 
-	avoiding the blocking of the main thread. This is particularly useful for long-running 
+	A `BackgroundWorker` allows the execution of a function on a background thread,
+	avoiding the blocking of the main thread. This is particularly useful for long-running
 	operations like file I/O, network requests, or computationally intensive tasks.
 
 	### Notes:
-	- **Thread Support:** Only system targets (such as C++, Neko) support threading. 
-	- **Events:** The class uses the `Event` class to dispatch completion, error, 
+	- **Thread Support:** Only system targets (such as C++, Neko) support threading.
+	- **Events:** The class uses the `Event` class to dispatch completion, error,
 	  and progress notifications.
 
-	@see `ThreadPool` for more advanced threading capabilities, including thread 
+	@see `ThreadPool` for more advanced threading capabilities, including thread
 	safety, HTML5 threads, and more robust handling of tasks.
 **/
 #if !lime_debug
@@ -68,7 +61,7 @@ class BackgroundWorker
 	public var onProgress = new Event<Dynamic->Void>();
 
 	@:noCompletion private var __runMessage:Dynamic;
-	#if (cpp || neko || (haxe4 && hl))
+	#if (cpp || neko || hl)
 	@:noCompletion private var __messageQueue:Deque<Dynamic>;
 	@:noCompletion private var __workerThread:Thread;
 	#end
@@ -79,14 +72,14 @@ class BackgroundWorker
 	public function new() {}
 
 	/**
-		Cancels the worker's task if it is still running. This won't stop the thread 
+		Cancels the worker's task if it is still running. This won't stop the thread
 		immediately.
 	**/
 	public function cancel():Void
 	{
 		canceled = true;
 
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		__workerThread = null;
 		#end
 	}
@@ -101,7 +94,7 @@ class BackgroundWorker
 		completed = false;
 		__runMessage = message;
 
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		__messageQueue = new Deque<Dynamic>();
 		__workerThread = Thread.create(__doWork);
 
@@ -124,7 +117,7 @@ class BackgroundWorker
 	{
 		completed = true;
 
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		__messageQueue.add(MESSAGE_COMPLETE);
 		__messageQueue.add(message);
 		#else
@@ -142,7 +135,7 @@ class BackgroundWorker
 	**/
 	public function sendError(message:Dynamic = null):Void
 	{
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		__messageQueue.add(MESSAGE_ERROR);
 		__messageQueue.add(message);
 		#else
@@ -160,7 +153,7 @@ class BackgroundWorker
 	**/
 	public function sendProgress(message:Dynamic = null):Void
 	{
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		__messageQueue.add(message);
 		#else
 		if (!canceled)
@@ -192,7 +185,7 @@ class BackgroundWorker
 
 	@:noCompletion private function __update(deltaTime:Int):Void
 	{
-		#if (cpp || neko || (haxe4 && hl))
+		#if (cpp || neko || hl)
 		var message = __messageQueue.pop(false);
 
 		if (message != null)

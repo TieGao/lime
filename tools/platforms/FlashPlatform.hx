@@ -19,11 +19,7 @@ import lime.tools.PlatformTarget;
 import sys.io.File;
 import sys.FileSystem;
 #if neko
-#if haxe4
 import sys.thread.Thread;
-#else
-import neko.vm.Thread;
-#end
 #end
 class FlashPlatform extends PlatformTarget
 {
@@ -313,19 +309,19 @@ class FlashPlatform extends PlatformTarget
 	}
 
 	/*private function getIcon (size:Int, targetPath:String):Void {
-	
+
 			var icon = icons.findIcon (size, size);
-	
+
 			if (icon != "") {
-	
+
 				System.copyIfNewer (icon, targetPath);
-	
+
 			} else {
-	
+
 				icons.updateIcon (size, size, targetPath);
-	
+
 			}
-	
+
 		}*/
 	@ignore public override function install():Void {}
 

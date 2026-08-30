@@ -50,7 +50,6 @@ class HXProject extends Script
 	public var platformType:PlatformType;
 	public var postBuildCallbacks:Array<CLICommand>;
 	public var preBuildCallbacks:Array<CLICommand>;
-	@:noCompletion public var processedHaxelibIncludes:Array<String>;
 	public var samplePaths:Array<String>;
 	public var sources:Array<String>;
 	public var splashScreens:Array<SplashScreen>;
@@ -221,7 +220,6 @@ class HXProject extends Script
 		ndlls = new Array<NDLL>();
 		postBuildCallbacks = new Array<CLICommand>();
 		preBuildCallbacks = new Array<CLICommand>();
-		processedHaxelibIncludes = new Array<String>();
 		sources = new Array<String>();
 		samplePaths = new Array<String>();
 		splashScreens = new Array<SplashScreen>();
@@ -325,7 +323,6 @@ class HXProject extends Script
 		project.platformType = platformType;
 		project.postBuildCallbacks = postBuildCallbacks.copy();
 		project.preBuildCallbacks = preBuildCallbacks.copy();
-		project.processedHaxelibIncludes = processedHaxelibIncludes.copy();
 		project.samplePaths = samplePaths.copy();
 		project.sources = sources.copy();
 
@@ -928,15 +925,6 @@ class HXProject extends Script
 			excludeArchitectures = ArrayTools.concatUnique(excludeArchitectures, project.excludeArchitectures);
 			haxeflags = ArrayTools.concatUnique(haxeflags, project.haxeflags);
 			haxelibs = ArrayTools.concatUnique(haxelibs, project.haxelibs, true, "name");
-			if (processedHaxelibIncludes == null)
-			{
-				processedHaxelibIncludes = new Array<String>();
-			}
-
-			if (project.processedHaxelibIncludes != null)
-			{
-				processedHaxelibIncludes = ArrayTools.concatUnique(processedHaxelibIncludes, project.processedHaxelibIncludes);
-			}
 			icons = ArrayTools.concatUnique(icons, project.icons);
 			javaPaths = ArrayTools.concatUnique(javaPaths, project.javaPaths, true);
 
@@ -1003,11 +991,6 @@ class HXProject extends Script
 	// #if lime
 	@:noCompletion private static function processHaxelibs(project:HXProject, userDefines:Map<String, Dynamic>):Void
 	{
-		if (project.processedHaxelibIncludes == null)
-		{
-			project.processedHaxelibIncludes = new Array<String>();
-		}
-
 		var haxelibs = project.haxelibs.copy();
 		project.haxelibs = [];
 
@@ -1015,11 +998,6 @@ class HXProject extends Script
 		{
 			var validatePath = Haxelib.getPath(haxelib, true);
 			project.haxelibs.push(haxelib);
-
-			if (ArrayTools.containsValue(project.processedHaxelibIncludes, getHaxelibIncludeKey(haxelib)))
-			{
-				continue;
-			}
 
 			var includeProject = HXProject.fromHaxelib(haxelib, userDefines);
 
@@ -1036,16 +1014,6 @@ class HXProject extends Script
 				project.merge(includeProject);
 			}
 		}
-	}
-
-	@:noCompletion public static function getHaxelibIncludeKey(haxelib:Haxelib):String
-	{
-		if (haxelib.version != null && haxelib.version != "")
-		{
-			return haxelib.name + ":" + haxelib.version;
-		}
-
-		return haxelib.name;
 	}
 
 	@:noCompletion private static function resolveClass(name:String):Class<Dynamic>

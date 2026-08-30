@@ -87,46 +87,85 @@ class EventMacro
 				args.push({name: argName, type: typeArgs[i].t.toComplexType()});
 			}
 
-			var dispatchListeners = macro
-				{
-					var listeners = __listeners;
-					var repeat = __repeat;
-					var i = 0;
-
-					while (i < listeners.length)
-					{
-						listeners[i]($a{argNames});
-
-						if (!repeat[i])
-						{
-							this.remove(cast listeners[i]);
-						}
-						else
-						{
-							i++;
-						}
-
-						if (canceled)
-						{
-							break;
-						}
-					}
-				};
-
-			// Keep listener exceptions on the original dispatch path without a cleanup wrapper.
 			var dispatch = macro
 				{
+					var previousTimestamp = __timestamp;
 					__timestamp = lime.system.System.getTimer();
 					canceled = false;
-					$dispatchListeners;
-				};
+
+					try
+					{
+						var listeners = __listeners;
+						var repeat = __repeat;
+						var i = 0;
+
+						while (i < listeners.length)
+						{
+							listeners[i]($a{argNames});
+
+							if (!repeat[i])
+							{
+								this.remove(cast listeners[i]);
+							}
+							else
+							{
+								i++;
+							}
+
+							if (canceled)
+							{
+								break;
+							}
+						}
+					}
+					catch (e:Dynamic)
+					{
+						__timestamp = previousTimestamp;
+						throw e;
+					}
+
+					__timestamp = previousTimestamp;
+				}
 
 			var timestampDispatch = macro
 				{
+					var previousTimestamp = __timestamp;
 					__timestamp = timestamp;
 					canceled = false;
-					$dispatchListeners;
-				};
+
+					try
+					{
+						var listeners = __listeners;
+						var repeat = __repeat;
+						var i = 0;
+
+						while (i < listeners.length)
+						{
+							listeners[i]($a{argNames});
+
+							if (!repeat[i])
+							{
+								this.remove(cast listeners[i]);
+							}
+							else
+							{
+								i++;
+							}
+
+							if (canceled)
+							{
+								break;
+							}
+						}
+					}
+					catch (e:Dynamic)
+					{
+						__timestamp = previousTimestamp;
+						throw e;
+					}
+
+					__timestamp = previousTimestamp;
+				}
 
 			var i = 0;
 			var field;

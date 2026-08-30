@@ -190,7 +190,7 @@ class WorkOutput
 	}
 }
 
-#if haxe4 enum #else @:enum #end abstract ThreadMode(Bool)
+enum abstract ThreadMode(Bool)
 {
 	/**
 		All work will be done on the main thread, during `Application.onUpdate`.
@@ -377,8 +377,7 @@ class JSAsync
 	{
 		if (Context.defined("js"))
 		{
-			var jsCode:Expr = #if haxe4 macro js.Syntax.code #else macro untyped __js__ #end;
-			return macro $jsCode("(async {0})()", function() $code);
+			return macro js.Syntax.code("(async {0})()", function() $code);
 		}
 		else
 		{

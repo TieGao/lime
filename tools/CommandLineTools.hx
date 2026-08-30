@@ -990,11 +990,6 @@ class CommandLineTools
 			Log.println("  \x1b[1m-clean\x1b[0m -- Add a \"clean\" action before running the current command");
 		}
 
-		if (command == "build" || command == "test")
-		{
-			Log.println("  \x1b[1m-noupdate\x1b[0m -- Disable the \"update\" action before running the current command");
-		}
-
 		Log.println("  \x1b[1m-nocolor\x1b[0m -- Disable ANSI format codes in output");
 
 		if (command == "run" || command == "test")
@@ -1065,7 +1060,6 @@ class CommandLineTools
 			{
 				Log.println("  \x1b[3m(html5|flash|webassembly)\x1b[0m \x1b[1m-nolaunch\x1b[0m -- Begin test server without launching");
 				// Log.println ("  \x1b[3m(html5)\x1b[0m \x1b[1m-minify\x1b[0m -- Minify output using the Google Closure compiler");
-				// Log.println ("  \x1b[3m(html5)\x1b[0m \x1b[1m-minify -yui\x1b[0m -- Minify output using the YUI compressor");
 				Log.println("  \x1b[3m(html5|flash|webassembly)\x1b[0m \x1b[1m--port=\x1b[0;3mvalue\x1b[0m -- Set port for test server");
 			}
 
@@ -1789,14 +1783,9 @@ class CommandLineTools
 			return null;
 		}
 
-		if (project == null)
+		if (project == null || (command != "rebuild" && project.sources.length == 0 && !FileSystem.exists(project.app.main + ".hx")))
 		{
 			Log.error("You must have a \"project.xml\" file or specify another valid project file when using the '" + command + "' command");
-			return null;
-		}
-		else if (command != "rebuild" && project.sources.length == 0 && !FileSystem.exists(project.app.main + ".hx"))
-		{
-			Log.error("Main class \"" + project.app.main + "\" not found. Expected: " + Log.accentColor + FileSystem.absolutePath(project.app.main + ".hx") + Log.resetColor + "\nDid you mean to include a <source /> element in your \"project.xml\" file?");
 			return null;
 		}
 
@@ -2279,17 +2268,12 @@ class CommandLineTools
 				{
 					if (argument.substr(0, 4) == "-arm")
 					{
-						try
-						{
-							var name = argument.substr(1).toUpperCase();
-							var value = Type.createEnum(Architecture, name);
+						var value = new Architecture(argument.substr(1));
 
-							if (value != null)
-							{
-								overrides.architectures.push(value);
-							}
+						if (value != null)
+						{
+							overrides.architectures.push(value);
 						}
-						catch (e:Dynamic) {}
 					}
 					else if (argument == "-64" || argument == "-x86_64")
 					{

@@ -281,7 +281,12 @@ class NativeApplication
 	{
 		for (window in parent.windows)
 		{
-			window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
+			switch dropEventInfo.type {
+				case DROP_FILE: window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
+				case DROP_TEXT: //window.onDropText.dispatch(CFFI.stringValue(dropEventInfo.file));
+				case DROP_BEGIN: window.onDropStart.dispatch();
+				case DROP_COMPLETE: window.onDropEnd.dispatch();
+			}
 		}
 	}
 
@@ -725,7 +730,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ApplicationEventType(Int)
+private enum abstract ApplicationEventType(Int)
 {
 	var UPDATE = 0;
 	var EXIT = 1;
@@ -746,7 +751,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ClipboardEventType(Int)
+private enum abstract ClipboardEventType(Int)
 {
 	var UPDATE = 0;
 }
@@ -768,9 +773,12 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract DropEventType(Int)
+private enum abstract DropEventType(Int)
 {
 	var DROP_FILE = 0;
+	var DROP_TEXT = 1;
+	var DROP_BEGIN = 2;
+	var DROP_COMPLETE = 3;
 }
 
 @:keep /*private*/ class GamepadEventInfo
@@ -798,7 +806,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract GamepadEventType(Int)
+private enum abstract GamepadEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var BUTTON_DOWN = 1;
@@ -833,7 +841,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract JoystickEventType(Int)
+private enum abstract JoystickEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var HAT_MOVE = 1;
@@ -866,7 +874,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract KeyEventType(Int)
+private enum abstract KeyEventType(Int)
 {
 	var KEY_DOWN = 0;
 	var KEY_UP = 1;
@@ -903,7 +911,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract MouseEventType(Int)
+private enum abstract MouseEventType(Int)
 {
 	var MOUSE_DOWN = 0;
 	var MOUSE_UP = 1;
@@ -926,7 +934,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract RenderEventType(Int)
+private enum abstract RenderEventType(Int)
 {
 	var RENDER = 0;
 	var RENDER_CONTEXT_LOST = 1;
@@ -957,7 +965,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract SensorEventType(Int)
+private enum abstract SensorEventType(Int)
 {
 	var ACCELEROMETER = 0;
 }
@@ -986,7 +994,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TextEventType(Int)
+private enum abstract TextEventType(Int)
 {
 	var TEXT_INPUT = 0;
 	var TEXT_EDIT = 1;
@@ -1022,7 +1030,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TouchEventType(Int)
+private enum abstract TouchEventType(Int)
 {
 	var TOUCH_START = 0;
 	var TOUCH_END = 1;
@@ -1054,7 +1062,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract WindowEventType(Int)
+private enum abstract WindowEventType(Int)
 {
 	var WINDOW_ACTIVATE = 0;
 	var WINDOW_CLOSE = 1;
@@ -1092,7 +1100,7 @@ class NativeApplication
 	}
 }
 
-#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract OrientationEventType(Int)
+private enum abstract OrientationEventType(Int)
 {
 	var DISPLAY_ORIENTATION_CHANGE = 0;
 	var DEVICE_ORIENTATION_CHANGE = 1;

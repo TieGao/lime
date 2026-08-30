@@ -82,9 +82,9 @@ import haxe.ds.ObjectMap;
 	/**
 		Dynamic function.
 
-		   		Cleans up an object before returning it to the pool.
-		   
-		   		@param object The object to clean up.
+		Cleans up an object before returning it to the pool.
+
+		@param object The object to clean up.
 	**/
 	public dynamic function clean(object:T):Void {}
 
@@ -106,7 +106,7 @@ import haxe.ds.ObjectMap;
 	/**
 		Dynamic function.
 
-		   		Creates a new Object.
+		Creates a new Object.
 	**/
 	public dynamic function create():T
 	{
@@ -172,9 +172,9 @@ import haxe.ds.ObjectMap;
 	}
 
 	/**
-		   		Removes an object from the pool.
+		Removes an object from the pool.
 
-		   		@param object The object to remove from the pool.
+		@param object The object to remove from the pool.
 	**/
 	public function remove(object:T):Void
 	{

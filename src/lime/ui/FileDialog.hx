@@ -200,7 +200,7 @@ class FileDialog
 
 					var path = null;
 					#if (!macro && lime_cffi)
-					// trace(defaultPath);
+					trace(defaultPath);
 					path = CFFI.stringValue(NativeCFFI.lime_file_dialog_open_file(title, filter, defaultPath));
 					#end
 
@@ -404,7 +404,7 @@ class FileDialog
 		buffer = buffer.slice(0, (data : Bytes).length);
 
 		#if commonjs
-		untyped #if haxe4 js.Syntax.code #else __js__ #end ("require ('file-saver')")(new Blob([buffer], {type: type}), path, true);
+		untyped js.Syntax.code("require ('file-saver')")(new Blob([buffer], {type: type}), path, true);
 		#else
 		untyped window.saveAs(new Blob([buffer], {type: type}), path, true);
 		#end

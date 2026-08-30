@@ -238,7 +238,11 @@ class ImageDataUtil
 			var srcPremultiplied = sourceImage.buffer.premultiplied;
 			var destPremultiplied = image.buffer.premultiplied;
 
-			var srcPosition, destPosition, srcPixel:RGBA = 0, destPixel:RGBA = 0, value = 0;
+			var srcPosition,
+				destPosition,
+				srcPixel:RGBA = 0,
+				destPixel:RGBA = 0,
+				value = 0;
 
 			for (y in 0...destView.height)
 			{
@@ -597,7 +601,12 @@ class ImageDataUtil
 			queue.push(x);
 			queue.push(y);
 
-			var curPointX, curPointY, nextPointX, nextPointY, nextPointOffset, readColor:RGBA = 0;
+			var curPointX,
+				curPointY,
+				nextPointX,
+				nextPointY,
+				nextPointOffset,
+				readColor:RGBA = 0;
 
 			while (queue.length > 0)
 			{
@@ -991,9 +1000,18 @@ class ImageDataUtil
 
 			var data = image.data;
 			var newData = newBuffer.data;
-			var sourceIndex:Int, sourceIndexX:Int, sourceIndexY:Int, sourceIndexXY:Int, index:Int;
+			var sourceIndex:Int,
+				sourceIndexX:Int,
+				sourceIndexY:Int,
+				sourceIndexXY:Int,
+				index:Int;
 			var sourceX:Int, sourceY:Int;
-			var u:Float, v:Float, uRatio:Float, vRatio:Float, uOpposite:Float, vOpposite:Float;
+			var u:Float,
+				v:Float,
+				uRatio:Float,
+				vRatio:Float,
+				uOpposite:Float,
+				vOpposite:Float;
 
 			for (y in 0...newHeight)
 			{
@@ -1343,7 +1361,13 @@ class ImageDataUtil
 			var srcPremultiplied = sourceImage.buffer.premultiplied;
 			var destPremultiplied = image.buffer.premultiplied;
 
-			var srcPosition, destPosition, srcPixel:RGBA = 0, destPixel:RGBA = 0, pixelMask:UInt, test:Bool, value:Int;
+			var srcPosition,
+				destPosition,
+				srcPixel:RGBA = 0,
+				destPixel:RGBA = 0,
+				pixelMask:UInt,
+				test:Bool,
+				value:Int;
 
 			for (y in 0...destView.height)
 			{
@@ -1750,7 +1774,8 @@ private class ImageDataView
 	}
 }
 
-@:noCompletion @:dox(hide) #if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ThresholdOperation(Int) from Int to Int
+@:noCompletion @:dox(hide)
+private enum abstract ThresholdOperation(Int) from Int to Int
 {
 	var NOT_EQUALS = 0;
 	var EQUALS = 1;

@@ -44,7 +44,7 @@ class EventTest extends Test
 		Assert.equals(1234, observed);
 	}
 
-	public function testNestedDispatchUsesMostRecentTimestamp():Void
+	public function testNestedDispatchRestoresTimestamp():Void
 	{
 		var event = new Event<Int->Void>();
 		var timestamps:Array<Int> = [];
@@ -58,29 +58,11 @@ class EventTest extends Test
 			{
 				nested = true;
 				@:privateAccess event.__dispatchWithTimestamp(200, 2);
-				Assert.equals(200, event.timestamp);
+				Assert.equals(100, event.timestamp);
 			}
 		});
 
 		@:privateAccess event.__dispatchWithTimestamp(100, 1);
 		Assert.same([100, 200], timestamps);
-		Assert.equals(200, event.timestamp);
-	}
-
-	public function testListenerExceptionKeepsDispatchTimestamp():Void
-	{
-		var event = new Event<Int->Void>();
-
-		event.add(function(_)
-		{
-			throw "listener failure";
-		});
-
-		Assert.raises(function():Void
-		{
-			@:privateAccess event.__dispatchWithTimestamp(1234, 1);
-		});
-
-		Assert.equals(1234, event.timestamp);
 	}
 }
