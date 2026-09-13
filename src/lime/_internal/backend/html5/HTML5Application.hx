@@ -276,7 +276,18 @@ class HTML5Application
 
 	public function configureFrameTiming(profile:FrameProfile, frameRate:Float, options:FrameOptions):Void
 	{
-		framePeriod = frameRate > 0 ? (1000.0 / frameRate) : -1;
+		if (frameRate == 0 || frameRate >= 60)
+		{
+			framePeriod = -1;
+		}
+		else if (frameRate > 0)
+		{
+			framePeriod = 1000.0 / frameRate;
+		}
+		else
+		{
+			framePeriod = 1000;
+		}
 	}
 
 	public function exec():Int
@@ -294,13 +305,13 @@ class HTML5Application
 		}
 
 		#if stats
-		stats = untyped js.Syntax.code("new Stats ()");
+		stats = untyped #if haxe4 js.Syntax.code #else __js__ #end ("new Stats ()");
 		stats.domElement.style.position = "absolute";
 		stats.domElement.style.top = "0px";
 		Browser.document.body.appendChild(stats.domElement);
 		#end
 
-		untyped js.Syntax.code("
+		untyped #if haxe4 js.Syntax.code #else __js__ #end ("
 			if (!CanvasRenderingContext2D.prototype.isPointInStroke) {
 				CanvasRenderingContext2D.prototype.isPointInStroke = function (path, x, y) {
 					return false;

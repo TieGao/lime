@@ -86,6 +86,16 @@ class Font
 	 */
 	public var unitsPerEM:Int;
 
+	/**
+	 * Whether the font style is bold.
+	 */
+	public var isBold:Bool;
+
+	/**
+	 * Whether the font style is italic.
+	 */
+	public var isItalic:Bool;
+
 	@:noCompletion private var __fontID:String;
 	@:noCompletion private var __fontPath:String;
 	#if lime_cffi
@@ -107,29 +117,29 @@ class Font
 
 		if (!__init)
 		{
-			#if js if (ascender == untyped js.Syntax.code("undefined")) #end ascender = 0;
+			#if js if (ascender == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined")) #end ascender = 0;
 			#if js
-			if (descender == untyped js.Syntax.code("undefined"))
+			if (descender == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			descender = 0;
 			#if js
-			if (height == untyped js.Syntax.code("undefined"))
+			if (height == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			height = 0;
 			#if js
-			if (numGlyphs == untyped js.Syntax.code("undefined"))
+			if (numGlyphs == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			numGlyphs = 0;
 			#if js
-			if (underlinePosition == untyped js.Syntax.code("undefined"))
+			if (underlinePosition == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			underlinePosition = 0;
 			#if js
-			if (underlineThickness == untyped js.Syntax.code("undefined"))
+			if (underlineThickness == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			underlineThickness = 0;
 			#if js
-			if (unitsPerEM == untyped js.Syntax.code("undefined"))
+			if (unitsPerEM == untyped #if haxe4 js.Syntax.code #else __js__ #end ("undefined"))
 			#end
 			unitsPerEM = 0;
 
@@ -592,6 +602,8 @@ class Font
 			underlinePosition = other.underlinePosition;
 			underlineThickness = other.underlineThickness;
 			unitsPerEM = other.unitsPerEM;
+			isBold = other.isBold;
+			isItalic = other.isItalic;
 
 			__fontID = other.__fontID;
 			__fontPath = other.__fontPath;
@@ -649,6 +661,8 @@ class Font
 			strikethroughPosition = NativeCFFI.lime_font_get_strikethrough_position(src);
 			strikethroughThickness = NativeCFFI.lime_font_get_strikethrough_thickness(src);
 			unitsPerEM = NativeCFFI.lime_font_get_units_per_em(src);
+			isBold = NativeCFFI.lime_font_is_bold(src);
+			isItalic = NativeCFFI.lime_font_is_italic(src);
 		}
 		#end
 

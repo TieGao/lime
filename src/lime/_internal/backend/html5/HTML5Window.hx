@@ -14,7 +14,6 @@ import js.html.MouseEvent;
 import js.html.Node;
 import js.html.TextAreaElement;
 import js.html.TouchEvent;
-import js.html.URL;
 import js.html.ClipboardEvent;
 import js.Browser;
 import lime._internal.graphics.ImageCanvasUtil;
@@ -60,6 +59,7 @@ class HTML5Window
 
 	private var cacheElementHeight:Float;
 	private var cacheElementWidth:Float;
+	private var cacheElementScale:Float;
 	private var cacheMouseX:Float;
 	private var cacheMouseY:Float;
 	private var cursor:MouseCursor;
@@ -71,6 +71,9 @@ class HTML5Window
 	private var requestedFullscreen:Bool;
 	private var resizeElement:Bool;
 	private var scale = 1.0;
+	#if !lime_disable_window_scale_change
+	private var devicePixelRatioMediaQuery:js.html.MediaQueryList;
+	#end
 	private var setHeight:Int;
 	private var setWidth:Int;
 	private var textInputEnabled:Bool;
@@ -112,6 +115,10 @@ class HTML5Window
 		}
 
 		parent.__scale = scale;
+
+		#if !lime_disable_window_scale_change
+		watchDevicePixelRatio();
+		#end
 
 		setWidth = Reflect.hasField(attributes, "width") ? attributes.width : 0;
 		setHeight = Reflect.hasField(attributes, "height") ? attributes.height : 0;
@@ -172,6 +179,7 @@ class HTML5Window
 
 			cacheElementWidth = parent.__width;
 			cacheElementHeight = parent.__height;
+			cacheElementScale = scale;
 
 			resizeElement = true;
 		}
@@ -513,12 +521,7 @@ class HTML5Window
 				// TODO: Create a formal API that supports HTML5 file objects
 				if (event.dataTransfer != null && event.dataTransfer.files.length > 0)
 				{
-					parent.onDropStart.dispatch();
-					for (file in event.dataTransfer.files)
-					{
-						parent.onDropFile.dispatch(URL.createObjectURL(file));
-					}
-					parent.onDropEnd.dispatch();
+					parent.onDropFile.dispatch(cast event.dataTransfer.files);
 					event.preventDefault();
 					return false;
 				}
@@ -1356,6 +1359,35 @@ class HTML5Window
 		return value;
 	}
 
+	#if !lime_disable_window_scale_change
+	private function watchDevicePixelRatio(?e:Dynamic):Void
+	{
+		scale = Browser.window.devicePixelRatio;
+		if (parent.__scale != scale)
+		{
+			parent.__scale = scale;
+			parent.onDisplayScaleChange.dispatch();
+			updateSize();
+		}
+		if (devicePixelRatioMediaQuery != null)
+		{
+			#if haxe4
+			devicePixelRatioMediaQuery.removeEventListener("change", watchDevicePixelRatio);
+			#else
+			devicePixelRatioMediaQuery.removeListener(watchDevicePixelRatio);
+			#end
+			devicePixelRatioMediaQuery = null;
+		}
+		var mediaQueryString = '(resolution: ${scale}dppx)';
+		devicePixelRatioMediaQuery = Browser.window.matchMedia(mediaQueryString);
+		#if haxe4
+		devicePixelRatioMediaQuery.addEventListener("change", watchDevicePixelRatio);
+		#else
+		devicePixelRatioMediaQuery.addListener(watchDevicePixelRatio);
+		#end
+	}
+	#end
+
 	private function updateSize():Void
 	{
 		if (!parent.__resizable) return;
@@ -1374,10 +1406,12 @@ class HTML5Window
 			elementHeight = Browser.window.innerHeight;
 		}
 
-		if (elementWidth != cacheElementWidth || elementHeight != cacheElementHeight)
+		var scaleChanged = scale != cacheElementScale;
+		if (elementWidth != cacheElementWidth || elementHeight != cacheElementHeight || scaleChanged)
 		{
 			cacheElementWidth = elementWidth;
 			cacheElementHeight = elementHeight;
+			cacheElementScale = scale;
 
 			var stretch = resizeElement || (setWidth == 0 && setHeight == 0);
 
@@ -1385,7 +1419,7 @@ class HTML5Window
 			{
 				if (stretch)
 				{
-					if (parent.__width != elementWidth || parent.__height != elementHeight)
+					if (parent.__width != elementWidth || parent.__height != elementHeight || scaleChanged)
 					{
 						parent.__width = Std.int(elementWidth);
 						parent.__height = Std.int(elementHeight);

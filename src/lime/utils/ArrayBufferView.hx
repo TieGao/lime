@@ -502,7 +502,8 @@ abstract TypedArrayType(Int) from Int to Int
 {
 	// 8
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getInt8(buffer:ArrayBuffer, byteOffset:Int):Int
 	{
@@ -516,7 +517,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setInt8(buffer:ArrayBuffer, byteOffset:Int, value:Int)
 	{
@@ -531,7 +533,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getUint8(buffer:ArrayBuffer, byteOffset:Int):Null<UInt>
 	{
@@ -543,7 +546,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint8Clamped(buffer:ArrayBuffer, byteOffset:Int, value:UInt)
 	{
@@ -551,7 +555,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint8(buffer:ArrayBuffer, byteOffset:Int, value:UInt)
 	{
@@ -629,7 +634,8 @@ abstract TypedArrayType(Int) from Int to Int
 	} // setInt16_BE
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getUint16(buffer:ArrayBuffer, byteOffset:Int):Null<UInt>
 	{
@@ -644,7 +650,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getUint16_BE(buffer:ArrayBuffer, byteOffset:Int):Null<UInt>
 	{
@@ -661,7 +668,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint16(buffer:ArrayBuffer, byteOffset:Int, value:UInt)
 	{
@@ -673,7 +681,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint16_BE(buffer:ArrayBuffer, byteOffset:Int, value:UInt)
 	{
@@ -694,7 +703,8 @@ abstract TypedArrayType(Int) from Int to Int
 
 	// 32
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getInt32(buffer:ArrayBuffer, byteOffset:Int):Int
 	{
@@ -706,7 +716,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getInt32_BE(buffer:ArrayBuffer, byteOffset:Int):Int
 	{
@@ -727,7 +738,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setInt32(buffer:ArrayBuffer, byteOffset:Int, value:Int)
 	{
@@ -743,7 +755,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setInt32_BE(buffer:ArrayBuffer, byteOffset:Int, value:Int)
 	{
@@ -769,7 +782,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getUint32(buffer:ArrayBuffer, byteOffset:Int):Null<UInt>
 	{
@@ -785,7 +799,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getUint32_BE(buffer:ArrayBuffer, byteOffset:Int):Null<UInt>
 	{
@@ -806,7 +821,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint32(buffer:ArrayBuffer, byteOffset:Int, value:UInt)
 	{
@@ -818,7 +834,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setUint32_BE(buffer:ArrayBuffer, byteOffset:Int, value:UInt):Void
 	{
@@ -845,7 +862,8 @@ abstract TypedArrayType(Int) from Int to Int
 
 	// Float
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getFloat32(buffer:ArrayBuffer, byteOffset:Int):Float
 	{
@@ -857,7 +875,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getFloat32_BE(buffer:ArrayBuffer, byteOffset:Int):Float
 	{
@@ -869,7 +888,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setFloat32(buffer:ArrayBuffer, byteOffset:Int, value:Float)
 	{
@@ -884,7 +904,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setFloat32_BE(buffer:ArrayBuffer, byteOffset:Int, value:Float)
 	{
@@ -899,7 +920,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getFloat64(buffer:ArrayBuffer, byteOffset:Int):Float
 	{
@@ -911,7 +933,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function getFloat64_BE(buffer:ArrayBuffer, byteOffset:Int):Float
 	{
@@ -923,7 +946,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setFloat64(buffer:ArrayBuffer, byteOffset:Int, value:Float)
 	{
@@ -938,7 +962,8 @@ abstract TypedArrayType(Int) from Int to Int
 	}
 
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	public static function setFloat64_BE(buffer:ArrayBuffer, byteOffset:Int, value:Float)
 	{
@@ -954,7 +979,8 @@ abstract TypedArrayType(Int) from Int to Int
 
 	// Internal
 	#if !no_typedarray_inline
-	extern inline
+	#if (haxe_ver >= 4.0) extern #else @:extern #end
+	inline
 	#end
 	// clamp a Int to a 0-255 Uint8 (for Uint8Clamped array)
 	static function _clamp(_in:Float):Int

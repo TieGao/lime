@@ -1120,6 +1120,7 @@ class ProjectXMLParser extends HXProject
 							}
 						}
 
+						ArrayTools.addUnique(processedHaxelibIncludes, HXProject.getHaxelibIncludeKey(haxelib));
 						merge(includeProject);
 					}
 
@@ -1166,47 +1167,45 @@ class ProjectXMLParser extends HXProject
 				case "architecture":
 					if (element.has.name)
 					{
-						var nameString = substitute(element.att.name);
-						var name = new Architecture(nameString);
+						var name = substitute(element.att.name);
 
-						if (name != null)
+						if (Reflect.hasField(Architecture, name.toUpperCase()))
 						{
-							ArrayTools.addUnique(architectures, name);
+							ArrayTools.addUnique(architectures, Reflect.field(Architecture, name.toUpperCase()));
 						}
-						else if (nameString.toLowerCase() == "x86_64")
+						else if (name.toLowerCase() == "x86_64")
 						{
 							ArrayTools.addUnique(architectures, Architecture.X64);
 						}
-						else if (nameString.toLowerCase() == "x86_32")
+						else if (name.toLowerCase() == "x86_32")
 						{
 							ArrayTools.addUnique(architectures, Architecture.X86);
 						}
 						else
 						{
-							Log.warn("Ignoring unknown architecture: " + nameString);
+							Log.warn("Ignoring unknown architecture: " + name);
 						}
 					}
 
 					if (element.has.exclude)
 					{
-						var excludeString = substitute(element.att.exclude);
-						var exclude = new Architecture(excludeString);
+						var exclude = substitute(element.att.exclude);
 
-						if (exclude != null)
+						if (Reflect.hasField(Architecture, exclude.toUpperCase()))
 						{
-							ArrayTools.addUnique(excludeArchitectures, exclude);
+							ArrayTools.addUnique(excludeArchitectures, Reflect.field(Architecture, exclude.toUpperCase()));
 						}
-						else if (excludeString.toLowerCase() == "x86_64")
+						else if (exclude.toLowerCase() == "x86_64")
 						{
 							ArrayTools.addUnique(excludeArchitectures, Architecture.X64);
 						}
-						else if (excludeString.toLowerCase() == "x86_32")
+						else if (exclude.toLowerCase() == "x86_32")
 						{
 							ArrayTools.addUnique(excludeArchitectures, Architecture.X86);
 						}
 						else
 						{
-							Log.warn("Ignoring unknown architecture: " + excludeString);
+							Log.warn("Ignoring unknown architecture: " + exclude);
 						}
 					}
 

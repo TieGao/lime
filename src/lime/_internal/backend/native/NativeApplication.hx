@@ -281,12 +281,7 @@ class NativeApplication
 	{
 		for (window in parent.windows)
 		{
-			switch dropEventInfo.type {
-				case DROP_FILE: window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
-				case DROP_TEXT: //window.onDropText.dispatch(CFFI.stringValue(dropEventInfo.file));
-				case DROP_BEGIN: window.onDropStart.dispatch();
-				case DROP_COMPLETE: window.onDropEnd.dispatch();
-			}
+			window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
 		}
 	}
 
@@ -649,6 +644,17 @@ class NativeApplication
 					window.onMove.dispatch(windowEventInfo.x, windowEventInfo.y);
 
 				case WINDOW_RESIZE:
+					#if !lime_disable_window_scale_change
+					#if (lime_cffi && !macro)
+					// SDL2 reports scale changes as window resizes
+					var newScale = NativeCFFI.lime_window_get_scale(window.__backend.handle);
+					if (window.__scale != newScale)
+					{
+						window.__scale = newScale;
+						window.onDisplayScaleChange.dispatch();
+					}
+					#end
+					#end
 					window.__width = windowEventInfo.width;
 					window.__height = windowEventInfo.height;
 					window.onResize.dispatch(windowEventInfo.width, windowEventInfo.height);
@@ -730,7 +736,7 @@ class NativeApplication
 	}
 }
 
-private enum abstract ApplicationEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ApplicationEventType(Int)
 {
 	var UPDATE = 0;
 	var EXIT = 1;
@@ -751,7 +757,7 @@ private enum abstract ApplicationEventType(Int)
 	}
 }
 
-private enum abstract ClipboardEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ClipboardEventType(Int)
 {
 	var UPDATE = 0;
 }
@@ -773,12 +779,9 @@ private enum abstract ClipboardEventType(Int)
 	}
 }
 
-private enum abstract DropEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract DropEventType(Int)
 {
 	var DROP_FILE = 0;
-	var DROP_TEXT = 1;
-	var DROP_BEGIN = 2;
-	var DROP_COMPLETE = 3;
 }
 
 @:keep /*private*/ class GamepadEventInfo
@@ -806,7 +809,7 @@ private enum abstract DropEventType(Int)
 	}
 }
 
-private enum abstract GamepadEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract GamepadEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var BUTTON_DOWN = 1;
@@ -841,7 +844,7 @@ private enum abstract GamepadEventType(Int)
 	}
 }
 
-private enum abstract JoystickEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract JoystickEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var HAT_MOVE = 1;
@@ -874,7 +877,7 @@ private enum abstract JoystickEventType(Int)
 	}
 }
 
-private enum abstract KeyEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract KeyEventType(Int)
 {
 	var KEY_DOWN = 0;
 	var KEY_UP = 1;
@@ -911,7 +914,7 @@ private enum abstract KeyEventType(Int)
 	}
 }
 
-private enum abstract MouseEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract MouseEventType(Int)
 {
 	var MOUSE_DOWN = 0;
 	var MOUSE_UP = 1;
@@ -934,7 +937,7 @@ private enum abstract MouseEventType(Int)
 	}
 }
 
-private enum abstract RenderEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract RenderEventType(Int)
 {
 	var RENDER = 0;
 	var RENDER_CONTEXT_LOST = 1;
@@ -965,7 +968,7 @@ private enum abstract RenderEventType(Int)
 	}
 }
 
-private enum abstract SensorEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract SensorEventType(Int)
 {
 	var ACCELEROMETER = 0;
 }
@@ -994,7 +997,7 @@ private enum abstract SensorEventType(Int)
 	}
 }
 
-private enum abstract TextEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TextEventType(Int)
 {
 	var TEXT_INPUT = 0;
 	var TEXT_EDIT = 1;
@@ -1030,7 +1033,7 @@ private enum abstract TextEventType(Int)
 	}
 }
 
-private enum abstract TouchEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TouchEventType(Int)
 {
 	var TOUCH_START = 0;
 	var TOUCH_END = 1;
@@ -1062,7 +1065,7 @@ private enum abstract TouchEventType(Int)
 	}
 }
 
-private enum abstract WindowEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract WindowEventType(Int)
 {
 	var WINDOW_ACTIVATE = 0;
 	var WINDOW_CLOSE = 1;
@@ -1100,7 +1103,7 @@ private enum abstract WindowEventType(Int)
 	}
 }
 
-private enum abstract OrientationEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract OrientationEventType(Int)
 {
 	var DISPLAY_ORIENTATION_CHANGE = 0;
 	var DEVICE_ORIENTATION_CHANGE = 1;

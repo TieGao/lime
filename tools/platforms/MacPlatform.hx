@@ -112,10 +112,10 @@ class MacPlatform extends PlatformTarget
 			project.architectures.remove(excludeArchitecture);
 		}
 
-		targetArchitecture = System.hostArchitecture;
+		targetArchitecture = Type.createEnum(Architecture, Type.enumConstructor(System.hostArchitecture));
 		for (architecture in project.architectures)
 		{
-			if (architecture.isARM() || architecture.isX())
+			if (architecture.match(X86 | X64 | ARMV6 | ARMV7 | ARM64))
 			{
 				targetArchitecture = architecture;
 				break;

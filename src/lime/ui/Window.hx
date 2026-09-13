@@ -72,10 +72,6 @@ class Window
 	public var onClose(default, null) = new Event<Void->Void>();
 	public var onDeactivate(default, null) = new Event<Void->Void>();
 	public var onDropFile(default, null) = new Event<String->Void>();
-	// SDL_DROPTEXT is only implemented for X11 on Linux
-	//public var onDropText(default, null) = new Event<String->Void>();
-	public var onDropStart(default, null) = new Event<Void->Void>();
-	public var onDropEnd(default, null) = new Event<Void->Void>();
 	public var onEnter(default, null) = new Event<Void->Void>();
 	public var onExpose(default, null) = new Event<Void->Void>();
 	public var onFocusIn(default, null) = new Event<Void->Void>();
@@ -145,6 +141,7 @@ class Window
 	public var onShow(default, null) = new Event<Void->Void>();
 	public var onTextEdit(default, null) = new Event<String->Int->Int->Void>();
 	public var onTextInput(default, null) = new Event<String->Void>();
+	public var onDisplayScaleChange(default, null) = new Event<Void->Void>();
 	public var opacity(get, set):Float;
 	public var parameters:Dynamic;
 	public var resizable(get, set):Bool;
