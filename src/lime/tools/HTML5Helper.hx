@@ -15,27 +15,6 @@ import cpp.vm.Thread;
 
 class HTML5Helper
 {
-	public static function encodeSourceMappingURL(sourceFile:String)
-	{
-		// This is only required for projects with url-unsafe characters built with a Haxe version prior to 4.0.0
-
-		var filename = Path.withoutDirectory(sourceFile);
-
-		if (filename != StringTools.urlEncode(filename))
-		{
-			var output = System.runProcess("", "haxe", ["-version"], true, true, true, false, true);
-			var haxeVer:Version = StringTools.trim(output);
-
-			if (haxeVer < ("4.0.0":Version))
-			{
-				var replaceString = "//# sourceMappingURL=" + filename + ".map";
-				var replacement = "//# sourceMappingURL=" + StringTools.urlEncode(filename) + ".map";
-
-				System.replaceText(sourceFile, replaceString, replacement);
-			}
-		}
-	}
-
 	// public static function generateFontData (project:HXProject, font:Asset):String {
 	// 	var sourcePath = font.sourcePath;
 	// 	if (!FileSystem.exists (FileSystem.fullPath (sourcePath) + ".hash")) {
@@ -91,77 +70,98 @@ class HTML5Helper
 		{
 			System.openURL(project.app.url);
 		}
+		else if (project.targetFlags.exists("node"))
+		{
+			launchNodeHttpServer(project, path, port);
+		}
 		else
 		{
-			var suffix = switch (System.hostPlatform)
-			{
-				case WINDOWS: "-windows.exe";
-				case MAC: "-mac";
-				case LINUX: "-linux";
-				default: return;
-			}
-
-			if (suffix == "-linux")
-			{
-				if (System.hostArchitecture == X86)
-				{
-					suffix += "32";
-				}
-				else if (System.hostArchitecture == ARMV7)
-				{
-					suffix += "Arm";
-				}
-				else if (System.hostArchitecture == ARM64)
-				{
-					suffix += "Arm64";
-				}
-				else
-				{
-					suffix += "64";
-				}
-			}
-
-			var templatePaths = [
-				Path.combine(Haxelib.getPath(new Haxelib(#if lime "lime" #else "hxp" #end)), #if lime "templates" #else "" #end)
-			].concat(project.templatePaths);
-			var node = System.findTemplate(templatePaths, "bin/node/node" + suffix);
-			var server = System.findTemplate(templatePaths, "bin/node/http-server/bin/http-server");
-
-			if (System.hostPlatform != WINDOWS)
-			{
-				Sys.command("chmod", ["+x", node]);
-			}
-
-			var args = [server, path, "-c-1", "--cors"];
-
-			if (project.targetFlags.exists("port"))
-			{
-				port = Std.parseInt(project.targetFlags.get("port"));
-			}
-
-			if (port != 0)
-			{
-				args.push("-p");
-				args.push(Std.string(port));
-				Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:" + port);
-			}
-			else
-			{
-				Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:[3000*]");
-			}
-
-			if (!project.targetFlags.exists("nolaunch"))
-			{
-				args.push("-o");
-			}
-
-			if (!Log.verbose)
-			{
-				args.push("--silent");
-			}
-
-			System.runCommand("", node, args);
+			launchSnakeServer(project, path, port);
 		}
+	}
+
+	private static function launchSnakeServer(project:HXProject, path:String, port:Int = 0):Void
+	{
+		var snakeRoot = System.findTemplate(project.templatePaths, "bin/haxelibs/snake-server");
+		var hxargsRoot = System.findTemplate(project.templatePaths, "bin/haxelibs/hxargs");
+
+		var args = [
+			"-cp", Path.join([snakeRoot, "src"]),
+			"-cp", Path.join([hxargsRoot]),
+			"--main", "snake.Run",
+			"--run", "snake.Run",
+			"--directory", path,
+			"--no-cache",
+			"--cors"
+		];
+
+		if (project.targetFlags.exists("port"))
+		{
+			port = Std.parseInt(project.targetFlags.get("port"));
+		}
+
+		if (port != 0)
+		{
+			args.push("--port");
+			args.push(Std.string(port));
+			Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:" + port);
+		}
+		else
+		{
+			args.push("--port");
+			args.push("3000");
+			Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:[3000*]");
+		}
+
+		if (!project.targetFlags.exists("nolaunch"))
+		{
+			args.push("--open-browser");
+		}
+
+		if (!Log.verbose)
+		{
+			args.push("--silent");
+		}
+
+		System.runCommand("", "haxe", args);
+	}
+
+	private static function launchNodeHttpServer(project:HXProject, path:String, port:Int = 0):Void
+	{
+		var templatePaths = [
+			Path.combine(Haxelib.getPath(new Haxelib(#if lime "lime" #else "hxp" #end)), #if lime "templates" #else "" #end)
+		].concat(project.templatePaths);
+		var server = System.findTemplate(templatePaths, "bin/node/http-server/bin/http-server");
+
+		var args = [server, path, "-c-1", "--cors"];
+
+		if (project.targetFlags.exists("port"))
+		{
+			port = Std.parseInt(project.targetFlags.get("port"));
+		}
+
+		if (port != 0)
+		{
+			args.push("-p");
+			args.push(Std.string(port));
+			Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:" + port);
+		}
+		else
+		{
+			Log.info("", "\x1b[1mStarting local web server:\x1b[0m http://localhost:[3000*]");
+		}
+
+		if (!project.targetFlags.exists("nolaunch"))
+		{
+			args.push("-o");
+		}
+
+		if (!Log.verbose)
+		{
+			args.push("--silent");
+		}
+
+		System.runCommand("", "node", args);
 	}
 
 	public static function minify(project:HXProject, sourceFile:String):Bool
@@ -176,36 +176,11 @@ class HTML5Helper
 				var terser = "terser";
 				if (!project.targetFlags.exists("npx"))
 				{
-					var suffix = switch (System.hostPlatform)
-					{
-						case WINDOWS: "-windows.exe";
-						case MAC: "-mac";
-						case LINUX: "-linux";
-						default: return false;
-					}
-
-					if (suffix == "-linux")
-					{
-						if (System.hostArchitecture == X86)
-						{
-							suffix += "32";
-						}
-						else
-						{
-							suffix += "64";
-						}
-					}
-
+					executable = "node";
 					var templatePaths = [
 						Path.combine(Haxelib.getPath(new Haxelib(#if lime "lime" #else "hxp" #end)), #if lime "templates" #else "" #end)
 					].concat(project.templatePaths);
-					executable = System.findTemplate(templatePaths, "bin/node/node" + suffix);
 					terser = System.findTemplate(templatePaths, "bin/node/terser/bin/terser");
-
-					if (System.hostPlatform != WINDOWS)
-					{
-						Sys.command("chmod", ["+x", executable]);
-					}
 				}
 
 				var args = [terser, sourceFile, "-c", "-m", "-o", tempFile];

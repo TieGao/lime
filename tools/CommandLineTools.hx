@@ -1065,7 +1065,6 @@ class CommandLineTools
 			{
 				Log.println("  \x1b[3m(html5|flash|webassembly)\x1b[0m \x1b[1m-nolaunch\x1b[0m -- Begin test server without launching");
 				// Log.println ("  \x1b[3m(html5)\x1b[0m \x1b[1m-minify\x1b[0m -- Minify output using the Google Closure compiler");
-				// Log.println ("  \x1b[3m(html5)\x1b[0m \x1b[1m-minify -yui\x1b[0m -- Minify output using the YUI compressor");
 				Log.println("  \x1b[3m(html5|flash|webassembly)\x1b[0m \x1b[1m--port=\x1b[0;3mvalue\x1b[0m -- Set port for test server");
 			}
 
@@ -2279,17 +2278,12 @@ class CommandLineTools
 				{
 					if (argument.substr(0, 4) == "-arm")
 					{
-						try
-						{
-							var name = argument.substr(1).toUpperCase();
-							var value = Type.createEnum(Architecture, name);
+						var value = new Architecture(argument.substr(1));
 
-							if (value != null)
-							{
-								overrides.architectures.push(value);
-							}
+						if (value != null)
+						{
+							overrides.architectures.push(value);
 						}
-						catch (e:Dynamic) {}
 					}
 					else if (argument == "-64" || argument == "-x86_64")
 					{

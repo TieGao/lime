@@ -147,7 +147,7 @@ class WebAssemblyPlatform extends PlatformTarget
 
 		project.path(sdkPath);
 
-		System.runCommand("", "emcc", [
+		System.runCommand("", "em++", [
 			"-c",
 			"-fwasm-exceptions",
 			targetDirectory + "/obj/Main.cpp",
@@ -163,21 +163,7 @@ class WebAssemblyPlatform extends PlatformTarget
 			args.push(path);
 		}
 
-		var json = Json.parse(File.getContent(Haxelib.getPath(new Haxelib("hxcpp"), true) + "/haxelib.json"));
-		var prefix = "";
-
-		var version = Std.string(json.version);
-		var versionSplit = version.split(".");
-
-		while (versionSplit.length > 2)
-			versionSplit.pop();
-
-		if (Std.parseFloat(versionSplit.join(".")) > 3.1)
-		{
-			prefix = "lib";
-		}
-
-		args = args.concat([prefix + "ApplicationMain" + (project.debug ? "-debug" : "") + ".a"]);
+		args = args.concat(["libApplicationMain" + (project.debug ? "-debug" : "") + ".a"]);
 
 		if (!project.targetFlags.exists("asmjs"))
 		{
@@ -215,6 +201,8 @@ class WebAssemblyPlatform extends PlatformTarget
 		// https://github.com/HaxeFoundation/hxcpp/blob/767fe94d19a041147c4f65dea02c89cb206a0758/toolchain/emscripten-toolchain.xml#L29-L33
 		args.push("-s");
 		args.push("BINARYEN_EXTRA_PASSES='--spill-pointers'");
+		// https://github.com/HaxeFoundation/hxcpp/commit/d7781f795158a4b6043138b61507ab99fe1ff2d7
+		args.push("--profiling-funcs");
 
 		args.push("-fwasm-exceptions");
 
@@ -289,7 +277,7 @@ class WebAssemblyPlatform extends PlatformTarget
 
 		// args.push ("../bin/index.html");
 
-		System.runCommand(targetDirectory + "/obj", "emcc", args, true, false, true);
+		System.runCommand(targetDirectory + "/obj", "em++", args, true, false, true);
 
 		if (FileSystem.exists(outputFile))
 		{
