@@ -1,0 +1,4 @@
+{
+    "cmake.sourceDirectory": "C:/HaxeToolkit/haxe/lib/lime/8,4,0/templates/mbedtls/include",
+    "cmake.ignoreCMakeListsMissing": true
+}
