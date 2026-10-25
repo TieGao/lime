@@ -190,7 +190,7 @@ class WorkOutput
 	}
 }
 
-enum abstract ThreadMode(Bool)
+#if haxe4 enum #else @:enum #end abstract ThreadMode(Bool)
 {
 	/**
 		All work will be done on the main thread, during `Application.onUpdate`.
@@ -336,7 +336,7 @@ class JobData
 	}
 }
 
-enum abstract ThreadEventType(String)
+#if haxe4 enum #else @:enum #end abstract ThreadEventType(String)
 {
 	// Events sent from a worker to the main thread, in any mode
 	var COMPLETE = "COMPLETE";
@@ -377,7 +377,8 @@ class JSAsync
 	{
 		if (Context.defined("js"))
 		{
-			return macro js.Syntax.code("(async {0})()", function() $code);
+			var jsCode:Expr = #if haxe4 macro js.Syntax.code #else macro untyped __js__ #end;
+			return macro $jsCode("(async {0})()", function() $code);
 		}
 		else
 		{

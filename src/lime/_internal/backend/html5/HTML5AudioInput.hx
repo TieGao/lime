@@ -313,11 +313,11 @@ class HTML5AudioInput
 
 		try
 		{
-			return js.Syntax.code("new audioContextClass({ sampleRate: {0} })", parent.sampleRate);
+			return untyped #if haxe4 js.Syntax.code #else __js__ #end ("new audioContextClass({ sampleRate: {0} })", parent.sampleRate);
 		}
 		catch (e:Dynamic)
 		{
-			return js.Syntax.code("new audioContextClass()");
+			return untyped #if haxe4 js.Syntax.code #else __js__ #end ("new audioContextClass()");
 		}
 	}
 

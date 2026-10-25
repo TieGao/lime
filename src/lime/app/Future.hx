@@ -40,7 +40,8 @@ import lime.utils.Log;
 @:fileXml('tags="haxe,release"')
 @:noDebug
 #end
-@:allow(lime.app.Promise) class Future<T>
+@:access(lime.system.System)
+@:allow(lime.app.Promise) /*@:generic*/ class Future<T>
 {
 	/**
 		If the `Future` has finished with an error state, the `error` value
@@ -196,7 +197,11 @@ import lime.utils.Log;
 
 	/**
 		Attempts to block on an asynchronous `Future`, returning when it is completed.
-		@param	waitTime	(Optional) A timeout before this call will stop blocking
+
+		Only work run with `new Future(work, true)` or `Promise.completeAsync()` can
+		be waited for; for other futures this returns at once.
+		@param	waitTime	(Optional) How long to wait at most, in milliseconds. By
+		default, or when negative, this doesn't wait.
 		@return	This current `Future`
 	**/
 	public function ready(waitTime:Int = -1):Future<T>
@@ -208,16 +213,22 @@ import lime.utils.Log;
 		}
 		else
 		{
-			var time = System.getTimer();
+			// Compared as Ints, the times would go wrong where System.getTimer wraps
+			var time = System.__getTimer();
 			var end = time + waitTime;
 
-			while (!isComplete && !isError && time <= end && FutureWork.activeJobs > 0)
+			while (!isComplete && !isError && time <= end && FutureWork.pendingJobs > 0)
 			{
+				// Threaded work only reports back when its pool updates, which the
+				// application's loop can't do while this waits on the main thread
+				FutureWork.update();
+				if (isComplete || isError) break;
+
 				#if sys
 				Sys.sleep(0.01);
 				#end
 
-				time = System.getTimer();
+				time = System.__getTimer();
 			}
 
 			return this;
@@ -229,7 +240,8 @@ import lime.utils.Log;
 
 	/**
 		Attempts to block on an asynchronous `Future`, returning the completion value when it is finished.
-		@param	waitTime	(Optional) A timeout before this call will stop blocking
+		@param	waitTime	(Optional) How long to wait at most, in milliseconds. By
+		default, or when negative, this doesn't wait.
 		@return	The completion value, or `null` if the request timed out or blocking is not possible
 	**/
 	public function result(waitTime:Int = -1):Null<T>
@@ -306,135 +318,6 @@ import lime.utils.Log;
 		future.value = value;
 		return future;
 	}
-
-	// Aggregation functions
-
-	/**
-	 * Creates a `Future` which completes once all the input `Future`s complete
-	 * successfully. Its completion value will be an array of the input
-	 * `Future`s' completion values, in the order they happened.
-	 *
-	 * If any of the input `Future`s encounter an error, the output `Future`
-	 * fails with the first encountered error message.
-	 */
-	public static function all<T>(futures:Array<Future<T>>):Future<Array<T>>
-	{
-		var promise:Promise<Array<T>> = new Promise<Array<T>>();
-		var results:Array<T> = [];
-
-		if (futures.length == 0)
-		{
-			promise.complete(results);
-			return promise.future;
-		}
-
-		for (future in futures)
-		{
-			future.onComplete(function(result)
-			{
-				results.push(result);
-				if (results.length == futures.length)
-				{
-					promise.complete(results);
-				}
-			});
-			future.onError(promise.error);
-		}
-
-		return promise.future;
-	}
-
-	/**
-	 * Creates a promise which completes when all the input `Future`s resolve
-	 * (whether success or failure). The completion value will be the array of
-	 * resolved `Future`s, whose states can be examined.
-	 */
-	public static function allResolved<T>(futures:Array<Future<T>>):Future<Array<Future<T>>>
-	{
-		var promise:Promise<Array<Future<T>>> = new Promise<Array<Future<T>>>();
-
-		if (futures.length == 0)
-		{
-			promise.complete(futures);
-			return promise.future;
-		}
-
-		var resolved:Int = 0;
-
-		for (future in futures)
-		{
-			future.onComplete(function(value)
-			{
-				resolved += 1;
-				if (resolved == futures.length)
-				{
-					promise.complete(futures);
-				}
-			});
-			future.onError(function(error)
-			{
-				resolved += 1;
-				if (resolved == futures.length)
-				{
-					promise.complete(futures);
-				}
-			});
-		}
-
-		return promise.future;
-	}
-
-	/**
-	 * Creates a `Future` which completes when any of the input `Future`s
-	 * complete, with that `Future`'s completion value. If all input `Future`s
-	 * encounter an error, the output `Future` will be rejected with an array
-	 * containing the error messages.
-	 */
-	public static function any<T>(futures:Array<Future<T>>):Future<T>
-	{
-		var promise:Promise<T> = new Promise<T>();
-		var errors:Array<Dynamic> = [];
-
-		if (futures.length == 0)
-		{
-			promise.error(errors);
-			return promise.future;
-		}
-
-		for (future in futures)
-		{
-			future.onComplete(promise.complete);
-			future.onError(function(error)
-			{
-				errors.push(error);
-				if (errors.length == futures.length)
-				{
-					promise.error(errors);
-				}
-			});
-		}
-
-		return promise.future;
-	}
-
-	/**
-	 * Creates a `Future` that resolves once any of the input `Future`s resolve,
-	 * with the same result as the first one to do so.
-	 *
-	 * If `futures` is empty, the returned `Future` will wait forever.
-	 */
-	public static function race<T>(futures:Array<Future<T>>):Future<T>
-	{
-		var promise:Promise<T> = new Promise<T>();
-
-		for (future in futures)
-		{
-			future.onComplete(promise.complete);
-			future.onError(promise.error);
-		}
-
-		return promise.future;
-	}
 }
 
 /**
@@ -444,31 +327,56 @@ import lime.utils.Log;
 @:fileXml('tags="haxe,release"')
 @:noDebug
 #end
+@:access(lime.system.ThreadPool)
 @:dox(hide) class FutureWork
 {
 	private static var threadPool:ThreadPool;
-	private static var promises:Map<Int, {complete:Dynamic->Dynamic, error:Dynamic->Dynamic, progress:Int->Int->Dynamic}>;
+	private static var promises:Map<Int, PromiseCallbacks>;
 
 	public static var minThreads(default, set):Int = 0;
 	public static var maxThreads(default, set):Int = 1;
 	public static var activeJobs(get, never):Int;
 
+	/**
+		The number of jobs run that have yet to complete or fail, including
+		those still waiting for a thread.
+	**/
+	@:allow(lime.app.Future)
+	private static var pendingJobs:Int = 0;
+
 	@:allow(lime.app.Promise)
 	private static inline function cancelJob(id:Int):Void
 	{
 		threadPool.cancelJob(id);
+
+		if (promises.remove(id))
+		{
+			pendingJobs--;
+		}
 	}
 
 	#if (lime_threads && !html5)
 	@:allow(lime.app.Future)
 	private static function runSimpleJob<T>(work:Void->T, promise:Promise<T>):Void
 	{
-		run(threadPool_doWork, promise, work, MULTI_THREADED);
+		run(threadPool_doWork, {complete: promise.complete, error: promise.error, progress: promise.progress}, work, MULTI_THREADED);
 	}
 	#end
 
+	/**
+		Updates the pool on the main thread, reporting what its jobs have sent.
+	**/
+	@:allow(lime.app.Future)
+	private static function update():Void
+	{
+		if (threadPool != null && ThreadPool.isMainThread())
+		{
+			threadPool.__update(0);
+		}
+	}
+
 	@:allow(lime.app.Promise)
-	private static function run<T>(work:WorkFunction<State->WorkOutput->Void>, promise:Promise<T>, state:State, mode:ThreadMode):Int
+	private static function run(work:WorkFunction<State->WorkOutput->Void>, promise:PromiseCallbacks, state:State, mode:ThreadMode):Int
 	{
 		if (threadPool == null)
 		{
@@ -481,7 +389,8 @@ import lime.utils.Log;
 		}
 
 		var jobID:Int = threadPool.run(work, state, mode);
-		promises[jobID] = {complete: promise.complete, error: promise.error, progress: promise.progress};
+		promises[jobID] = promise;
+		pendingJobs++;
 		return jobID;
 	}
 
@@ -502,6 +411,7 @@ import lime.utils.Log;
 	{
 		var promise = promises[threadPool.activeJob.id];
 		promises.remove(threadPool.activeJob.id);
+		pendingJobs--;
 		promise.complete(result);
 	}
 
@@ -509,6 +419,7 @@ import lime.utils.Log;
 	{
 		var promise = promises[threadPool.activeJob.id];
 		promises.remove(threadPool.activeJob.id);
+		pendingJobs--;
 		promise.error(error);
 	}
 
@@ -544,4 +455,15 @@ import lime.utils.Log;
 	{
 		return threadPool != null ? threadPool.activeJobs : 0;
 	}
+}
+
+/**
+	The functions that resolve a `Promise`. `Promise` is `@:generic`, so it passes
+	these rather than itself, whose type outside it is a different class.
+**/
+private typedef PromiseCallbacks =
+{
+	var complete:Dynamic->Dynamic;
+	var error:Dynamic->Dynamic;
+	var progress:Int->Int->Dynamic;
 }

@@ -10,7 +10,11 @@ import js.html.CanvasRenderingContext2D;
 import js.html.Image as HTMLImage;
 import js.html.ImageData;
 import js.Browser;
+#if haxe4
 import js.lib.Uint8ClampedArray;
+#else
+import js.html.Uint8ClampedArray;
+#end
 #elseif flash
 import flash.display.BitmapData;
 #end

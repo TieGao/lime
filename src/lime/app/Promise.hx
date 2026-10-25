@@ -49,6 +49,9 @@ import lime.system.WorkOutput;
 @:noDebug
 #end
 @:allow(lime.app.Future)
+#if (!hl && !js && !macro)
+@:generic
+#end
 class Promise<T>
 {
 	/**
@@ -167,7 +170,7 @@ class Promise<T>
 	**/
 	public function completeAsync(doWork:WorkFunction<State->WorkOutput->Void>, ?state:State, ?mode:ThreadMode = MULTI_THREADED):Void
 	{
-		jobID = FutureWork.run(doWork, this, state, mode);
+		jobID = FutureWork.run(doWork, {complete: complete, error: error, progress: progress}, state, mode);
 	}
 
 	/**

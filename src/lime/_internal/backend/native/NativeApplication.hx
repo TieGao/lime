@@ -28,6 +28,8 @@ import lime.ui.Joystick;
 import lime.ui.JoystickHatPosition;
 import lime.ui.KeyCode;
 import lime.ui.KeyModifier;
+import lime.ui.Menu;
+import lime.ui.MenuItem;
 import lime.ui.Touch;
 import lime.ui.Window;
 
@@ -45,8 +47,10 @@ import lime.ui.Window;
 @:access(lime.graphics.Renderer)
 @:access(lime.system.Clipboard)
 @:access(lime.system.Sensor)
+@:access(lime.system.System)
 @:access(lime.ui.Gamepad)
 @:access(lime.ui.Joystick)
+@:access(lime.ui.MenuItem)
 @:access(lime.ui.Window)
 class NativeApplication
 {
@@ -57,21 +61,34 @@ class NativeApplication
 	private var gamepadEventInfo = new GamepadEventInfo();
 	private var joystickEventInfo = new JoystickEventInfo();
 	private var keyEventInfo = new KeyEventInfo();
+	private var menuEventInfo = new MenuEventInfo();
 	private var orientationEventInfo = new OrientationEventInfo();
+
+	/**
+		Whether a window allows high DPI, which Windows is told as the application
+		is created, before any window is. Set by ApplicationMain.
+	**/
+	@:noCompletion private static var __allowHighDPI:Bool = false;
 	private var mouseEventInfo = new MouseEventInfo();
 	private var renderEventInfo = new RenderEventInfo(RENDER);
 	private var sensorEventInfo = new SensorEventInfo();
 	private var textEventInfo = new TextEventInfo();
 	private var touchEventInfo = new TouchEventInfo();
+	private var trayIconEventInfo = new TrayIconEventInfo();
 	private var unusedTouchesPool = new List<Touch>();
 	private var windowEventInfo = new WindowEventInfo();
+	#if (!macro && lime_cffi && windows && !winrt)
+	private var modalException:Dynamic;
+	private var modalExceptionPending = false;
+	#end
 
 	public var handle:Dynamic;
 
 	#if android
 	private var deviceOrientationListener:OrientationChangeListener;
 	#end
-	private var pauseTimer:Int;
+	private var menuItems:Array<MenuItem>;
+	private var pauseTimer:Float;
 	private var parent:Application;
 	private var toggleFullscreen:Bool;
 
@@ -99,6 +116,7 @@ class NativeApplication
 		setDeviceOrientationListener(deviceOrientationListener);
 		#end
 		#if (!macro && lime_cffi)
+		if (__allowHighDPI) NativeCFFI.lime_application_allow_high_dpi();
 		handle = NativeCFFI.lime_application_create();
 		#end
 	}
@@ -108,7 +126,7 @@ class NativeApplication
 		#if (lime_cffi && !macro)
 		if (pauseTimer > -1)
 		{
-			var offset = System.getTimer() - pauseTimer;
+			var offset = System.__getTimer() - pauseTimer;
 			for (timer in Timer.sRunningTimers)
 			{
 				if (timer.mRunning) timer.mFireAt += offset;
@@ -128,12 +146,20 @@ class NativeApplication
 		NativeCFFI.lime_gamepad_event_manager_register(handleGamepadEvent, gamepadEventInfo);
 		NativeCFFI.lime_joystick_event_manager_register(handleJoystickEvent, joystickEventInfo);
 		NativeCFFI.lime_key_event_manager_register(handleKeyEvent, keyEventInfo);
+		NativeCFFI.lime_menu_event_manager_register(handleMenuEvent, menuEventInfo);
 		NativeCFFI.lime_mouse_event_manager_register(handleMouseEvent, mouseEventInfo);
 		NativeCFFI.lime_render_event_manager_register(handleRenderEvent, renderEventInfo);
 
 		NativeCFFI.lime_text_event_manager_register(handleTextEvent, textEventInfo);
 		NativeCFFI.lime_touch_event_manager_register(handleTouchEvent, touchEventInfo);
+		NativeCFFI.lime_tray_icon_event_manager_register(handleTrayIconEvent, trayIconEventInfo);
 		NativeCFFI.lime_window_event_manager_register(handleWindowEvent, windowEventInfo);
+		#if (windows && !winrt)
+		NativeCFFI.lime_application_set_modal_callbacks(handle,
+			function() runModalCallback(handleApplicationEvent),
+			function() runModalCallback(handleRenderEvent),
+			function() runModalCallback(handleWindowEvent), rethrowModalException);
+		#end
 
 		#if (ios || android)
 		NativeCFFI.lime_orientation_event_manager_register(handleOrientationEvent, orientationEventInfo);
@@ -175,6 +201,8 @@ class NativeApplication
 
 	public function exit():Void
 	{
+		// Tray icons would otherwise remain in the notification area on some platforms
+		NativeTrayIcon.closeAll();
 		AudioManager.shutdown();
 		#if (!macro && lime_cffi)
 		NativeCFFI.lime_application_quit(handle);
@@ -198,12 +226,57 @@ class NativeApplication
 		#end
 	}
 
+	public function setMenu(menu:Menu):Void
+	{
+		#if (!macro && lime_cffi)
+		if (handle == null) return;
+
+		if (menu != null)
+		{
+			var items = [];
+			var data = NativeMenu.encode(menu, items);
+			menuItems = NativeCFFI.lime_application_set_menu(handle, data) ? items : null;
+		}
+		else
+		{
+			NativeCFFI.lime_application_set_menu(handle, null);
+			menuItems = null;
+		}
+		#end
+	}
+
 	public function setVSyncMode(mode:VSyncMode):Void
 	{
 		#if (!macro && lime_cffi)
 		NativeCFFI.lime_application_set_vsync_mode(handle, __convertVSyncMode(mode));
 		#end
 	}
+
+	#if (!macro && lime_cffi && windows && !winrt)
+	private function runModalCallback(callback:Void->Void):Void
+	{
+		if (modalExceptionPending) return;
+		try
+		{
+			callback();
+		}
+		catch (exception:Dynamic)
+		{
+			// Keep the value rooted in Haxe; do not unwind through SDL/Win32.
+			modalException = exception;
+			modalExceptionPending = true;
+			NativeCFFI.lime_application_defer_modal_exception(handle);
+		}
+	}
+
+	private function rethrowModalException():Void
+	{
+		var exception = modalException;
+		modalException = null;
+		modalExceptionPending = false;
+		throw exception;
+	}
+	#end
 
 	private function handleApplicationEvent():Void
 	{
@@ -281,12 +354,7 @@ class NativeApplication
 	{
 		for (window in parent.windows)
 		{
-			switch dropEventInfo.type {
-				case DROP_FILE: window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
-				case DROP_TEXT: //window.onDropText.dispatch(CFFI.stringValue(dropEventInfo.file));
-				case DROP_BEGIN: window.onDropStart.dispatch();
-				case DROP_COMPLETE: window.onDropEnd.dispatch();
-			}
+			window.onDropFile.dispatch(CFFI.stringValue(dropEventInfo.file));
 		}
 	}
 
@@ -310,6 +378,21 @@ class NativeApplication
 
 			case DISCONNECT:
 				Gamepad.__disconnect(gamepadEventInfo.id);
+
+			case SENSOR_UPDATE:
+				// The sensor comes in axis, and its readings in x, y and z
+				var gamepad = Gamepad.devices.get(gamepadEventInfo.id);
+				if (gamepad != null) @:privateAccess gamepad.onSensorUpdate.__dispatchWithTimestamp(gamepadEventInfo.timestamp, gamepadEventInfo.axis,
+					gamepadEventInfo.x, gamepadEventInfo.y, gamepadEventInfo.z);
+
+			case TOUCHPAD_DOWN, TOUCHPAD_MOVE, TOUCHPAD_UP:
+				// The finger comes in button, and where it is in x and y
+				var gamepad = Gamepad.devices.get(gamepadEventInfo.id);
+				if (gamepad != null)
+				{
+					var event = gamepadEventInfo.type == TOUCHPAD_DOWN ? gamepad.onTouchpadDown : (gamepadEventInfo.type == TOUCHPAD_MOVE ? gamepad.onTouchpadMove : gamepad.onTouchpadUp);
+					@:privateAccess event.__dispatchWithTimestamp(gamepadEventInfo.timestamp, gamepadEventInfo.button, gamepadEventInfo.x, gamepadEventInfo.y);
+				}
 		}
 	}
 
@@ -351,6 +434,8 @@ class NativeApplication
 			switch (type)
 			{
 				case KEY_DOWN:
+					// Key equivalents of the menu bar take priority, like native accelerators
+					if (window.__backend.handleMenuKeyEquivalent(keyCode, modifier)) return;
 					@:privateAccess window.onKeyDown.__dispatchWithTimestamp(keyEventInfo.timestamp, keyCode, modifier);
 				case KEY_UP:
 					@:privateAccess window.onKeyUp.__dispatchWithTimestamp(keyEventInfo.timestamp, keyCode, modifier);
@@ -412,6 +497,28 @@ class NativeApplication
 		}
 	}
 
+	private function handleMenuEvent():Void
+	{
+		switch (menuEventInfo.type)
+		{
+			case MENU_DOCK_SELECT:
+				NativeDockIcon.handleMenuSelect(menuEventInfo.id);
+
+			case MENU_SELECT:
+				if (menuEventInfo.windowID == 0)
+				{
+					// Application menu
+					var item = NativeMenu.getItem(menuItems, menuEventInfo.id);
+					if (item != null) item.__select();
+				}
+				else
+				{
+					var window = parent.__windowByID.get(menuEventInfo.windowID);
+					if (window != null) window.__backend.handleMenuSelect(menuEventInfo.id);
+				}
+		}
+	}
+
 	private function handleMouseEvent():Void
 	{
 		var window = parent.__windowByID.get(mouseEventInfo.windowID);
@@ -435,7 +542,10 @@ class NativeApplication
 
 					window.onMouseMoveRelative.dispatch(mouseEventInfo.movementX, mouseEventInfo.movementY);
 				case MOUSE_WHEEL:
-					window.onMouseWheel.dispatch(mouseEventInfo.x, mouseEventInfo.y, UNKNOWN);
+					// The fractions of a step come in movementX and movementY
+					if (window.preciseMouseWheel) window.onMouseWheel.dispatch(mouseEventInfo.movementX, mouseEventInfo.movementY, UNKNOWN);
+					else
+						window.onMouseWheel.dispatch(mouseEventInfo.x, mouseEventInfo.y, UNKNOWN);
 				default:
 			}
 		}
@@ -451,6 +561,13 @@ class NativeApplication
 				parent.onDisplayOrientationChange.dispatch(display, orientation);
 			case DEVICE_ORIENTATION_CHANGE:
 				parent.onDeviceOrientationChange.dispatch(orientation);
+			case DISPLAY_CONNECT:
+				var connected = System.getDisplay(display);
+				if (connected != null) Display.onConnect.dispatch(connected);
+			case DISPLAY_DISCONNECT:
+				Display.onDisconnect.dispatch(display);
+			case DISPLAY_MOVE:
+				Display.onMove.dispatch(display);
 		}
 	}
 
@@ -601,6 +718,24 @@ class NativeApplication
 		}
 	}
 
+	private function handleTrayIconEvent():Void
+	{
+		var trayIcon = NativeTrayIcon.getTrayIcon(trayIconEventInfo.id);
+
+		if (trayIcon != null)
+		{
+			switch (trayIconEventInfo.type)
+			{
+				case TRAY_ICON_CLICK:
+					trayIcon.handleClick();
+				case TRAY_ICON_MENU_SELECT:
+					trayIcon.handleMenuSelect(trayIconEventInfo.itemID);
+				case TRAY_ICON_RIGHT_CLICK:
+					trayIcon.handleRightClick();
+			}
+		}
+	}
+
 	private function handleWindowEvent():Void
 	{
 		var window = parent.__windowByID.get(windowEventInfo.windowID);
@@ -618,7 +753,7 @@ class NativeApplication
 				case WINDOW_DEACTIVATE:
 					window.onDeactivate.dispatch();
 					AudioManager.suspend();
-					pauseTimer = System.getTimer();
+					pauseTimer = System.__getTimer();
 				case WINDOW_ENTER:
 					window.onEnter.dispatch();
 				case WINDOW_EXPOSE:
@@ -682,7 +817,7 @@ class NativeApplication
 		#if (lime_cffi && !macro)
 		if (Timer.sRunningTimers.length > 0)
 		{
-			var currentTime = System.getTimer();
+			var currentTime = System.__getTimer();
 
 			var foundStopped = false;
 			for (timer in Timer.sRunningTimers)
@@ -741,7 +876,7 @@ class NativeApplication
 	}
 }
 
-private enum abstract ApplicationEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ApplicationEventType(Int)
 {
 	var UPDATE = 0;
 	var EXIT = 1;
@@ -762,7 +897,7 @@ private enum abstract ApplicationEventType(Int)
 	}
 }
 
-private enum abstract ClipboardEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract ClipboardEventType(Int)
 {
 	var UPDATE = 0;
 }
@@ -784,12 +919,9 @@ private enum abstract ClipboardEventType(Int)
 	}
 }
 
-private enum abstract DropEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract DropEventType(Int)
 {
 	var DROP_FILE = 0;
-	var DROP_TEXT = 1;
-	var DROP_BEGIN = 2;
-	var DROP_COMPLETE = 3;
 }
 
 @:keep /*private*/ class GamepadEventInfo
@@ -800,8 +932,12 @@ private enum abstract DropEventType(Int)
 	public var type:GamepadEventType;
 	public var axisValue:Float;
 	public var timestamp:Int;
+	public var x:Float;
+	public var y:Float;
+	public var z:Float;
 
-	public function new(type:GamepadEventType = null, id:Int = 0, button:Int = 0, axis:Int = 0, value:Float = 0, timestamp:Int = 0)
+	public function new(type:GamepadEventType = null, id:Int = 0, button:Int = 0, axis:Int = 0, value:Float = 0, timestamp:Int = 0, x:Float = 0, y:Float = 0,
+			z:Float = 0)
 	{
 		this.type = type;
 		this.id = id;
@@ -809,21 +945,28 @@ private enum abstract DropEventType(Int)
 		this.axis = axis;
 		this.axisValue = value;
 		this.timestamp = timestamp;
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 
 	public function clone():GamepadEventInfo
 	{
-		return new GamepadEventInfo(type, id, button, axis, axisValue, timestamp);
+		return new GamepadEventInfo(type, id, button, axis, axisValue, timestamp, x, y, z);
 	}
 }
 
-private enum abstract GamepadEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract GamepadEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var BUTTON_DOWN = 1;
 	var BUTTON_UP = 2;
 	var CONNECT = 3;
 	var DISCONNECT = 4;
+	var SENSOR_UPDATE = 5;
+	var TOUCHPAD_DOWN = 6;
+	var TOUCHPAD_MOVE = 7;
+	var TOUCHPAD_UP = 8;
 }
 
 @:keep /*private*/ class JoystickEventInfo
@@ -852,7 +995,7 @@ private enum abstract GamepadEventType(Int)
 	}
 }
 
-private enum abstract JoystickEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract JoystickEventType(Int)
 {
 	var AXIS_MOVE = 0;
 	var HAT_MOVE = 1;
@@ -885,10 +1028,35 @@ private enum abstract JoystickEventType(Int)
 	}
 }
 
-private enum abstract KeyEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract KeyEventType(Int)
 {
 	var KEY_DOWN = 0;
 	var KEY_UP = 1;
+}
+
+@:keep /*private*/ class MenuEventInfo
+{
+	public var id:Int;
+	public var type:MenuEventType;
+	public var windowID:Int;
+
+	public function new(type:MenuEventType = null, windowID:Int = 0, id:Int = 0)
+	{
+		this.type = type;
+		this.windowID = windowID;
+		this.id = id;
+	}
+
+	public function clone():MenuEventInfo
+	{
+		return new MenuEventInfo(type, windowID, id);
+	}
+}
+
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract MenuEventType(Int)
+{
+	var MENU_SELECT = 0;
+	var MENU_DOCK_SELECT = 1;
 }
 
 @:keep /*private*/ class MouseEventInfo
@@ -922,7 +1090,7 @@ private enum abstract KeyEventType(Int)
 	}
 }
 
-private enum abstract MouseEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract MouseEventType(Int)
 {
 	var MOUSE_DOWN = 0;
 	var MOUSE_UP = 1;
@@ -945,7 +1113,7 @@ private enum abstract MouseEventType(Int)
 	}
 }
 
-private enum abstract RenderEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract RenderEventType(Int)
 {
 	var RENDER = 0;
 	var RENDER_CONTEXT_LOST = 1;
@@ -976,7 +1144,7 @@ private enum abstract RenderEventType(Int)
 	}
 }
 
-private enum abstract SensorEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract SensorEventType(Int)
 {
 	var ACCELEROMETER = 0;
 }
@@ -1005,7 +1173,7 @@ private enum abstract SensorEventType(Int)
 	}
 }
 
-private enum abstract TextEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TextEventType(Int)
 {
 	var TEXT_INPUT = 0;
 	var TEXT_EDIT = 1;
@@ -1041,11 +1209,37 @@ private enum abstract TextEventType(Int)
 	}
 }
 
-private enum abstract TouchEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TouchEventType(Int)
 {
 	var TOUCH_START = 0;
 	var TOUCH_END = 1;
 	var TOUCH_MOVE = 2;
+}
+
+@:keep /*private*/ class TrayIconEventInfo
+{
+	public var id:Int;
+	public var itemID:Int;
+	public var type:TrayIconEventType;
+
+	public function new(type:TrayIconEventType = null, id:Int = 0, itemID:Int = 0)
+	{
+		this.type = type;
+		this.id = id;
+		this.itemID = itemID;
+	}
+
+	public function clone():TrayIconEventInfo
+	{
+		return new TrayIconEventInfo(type, id, itemID);
+	}
+}
+
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract TrayIconEventType(Int)
+{
+	var TRAY_ICON_CLICK = 0;
+	var TRAY_ICON_MENU_SELECT = 1;
+	var TRAY_ICON_RIGHT_CLICK = 2;
 }
 
 @:keep /*private*/ class WindowEventInfo
@@ -1073,7 +1267,7 @@ private enum abstract TouchEventType(Int)
 	}
 }
 
-private enum abstract WindowEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract WindowEventType(Int)
 {
 	var WINDOW_ACTIVATE = 0;
 	var WINDOW_CLOSE = 1;
@@ -1111,10 +1305,13 @@ private enum abstract WindowEventType(Int)
 	}
 }
 
-private enum abstract OrientationEventType(Int)
+#if (haxe_ver >= 4.0) private enum #else @:enum private #end abstract OrientationEventType(Int)
 {
 	var DISPLAY_ORIENTATION_CHANGE = 0;
 	var DEVICE_ORIENTATION_CHANGE = 1;
+	var DISPLAY_CONNECT = 2;
+	var DISPLAY_DISCONNECT = 3;
+	var DISPLAY_MOVE = 4;
 }
 
 #if android

@@ -163,7 +163,21 @@ class WebAssemblyPlatform extends PlatformTarget
 			args.push(path);
 		}
 
-		args = args.concat(["libApplicationMain" + (project.debug ? "-debug" : "") + ".a"]);
+		var json = Json.parse(File.getContent(Haxelib.getPath(new Haxelib("hxcpp"), true) + "/haxelib.json"));
+		var prefix = "";
+
+		var version = Std.string(json.version);
+		var versionSplit = version.split(".");
+
+		while (versionSplit.length > 2)
+			versionSplit.pop();
+
+		if (Std.parseFloat(versionSplit.join(".")) > 3.1)
+		{
+			prefix = "lib";
+		}
+
+		args = args.concat([prefix + "ApplicationMain" + (project.debug ? "-debug" : "") + ".a"]);
 
 		if (!project.targetFlags.exists("asmjs"))
 		{

@@ -45,7 +45,7 @@ class Timer
 	#elseif java
 	private var timer:java.util.Timer;
 	private var task:java.util.TimerTask;
-	#else
+	#elseif (haxe_ver >= "3.4.0")
 	private var event:MainLoop.MainEvent;
 	#end
 
@@ -74,7 +74,7 @@ class Timer
 		#elseif java
 		timer = new java.util.Timer();
 		timer.scheduleAtFixedRate(task = new TimerTask(this), haxe.Int64.ofInt(time_ms), haxe.Int64.ofInt(time_ms));
-		#else
+		#elseif (haxe_ver >= "3.4.0")
 		var dt = time_ms / 1000;
 		event = MainLoop.add(function()
 		{
@@ -110,7 +110,7 @@ class Timer
 			timer = null;
 		}
 		task = null;
-		#else
+		#elseif (haxe_ver >= "3.4.0")
 		if (event != null)
 		{
 			event.stop();
@@ -218,6 +218,7 @@ private class TimerTask extends java.util.TimerTask
 #else
 import lime.system.System;
 
+@:access(lime.system.System)
 class Timer
 {
 	private static var sRunningTimers:Array<Timer> = [];
@@ -249,7 +250,8 @@ class Timer
 
 	private static function getMS():Float
 	{
-		return System.getTimer();
+		// System.getTimer wraps after 24.8 days, which would stop every timer
+		return System.__getTimer();
 	}
 
 	public static function measure<T>(f:Void->T, ?pos:PosInfos):T
@@ -264,7 +266,7 @@ class Timer
 
 	public static inline function stamp():Float
 	{
-		var timer = System.getTimer();
+		var timer = getMS();
 		return (timer > 0 ? timer / 1000 : 0);
 	}
 
